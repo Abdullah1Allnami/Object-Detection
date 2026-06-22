@@ -1,14 +1,16 @@
 # Object Detection Learning Roadmap (Bottom → Top)
 
-## 1. Sliding Window Detector (Classic Approach)
-### Goal: Understand detection concept
+## 1. R-CNN & Sliding Window Detectors
+### Goal: Understand detection concepts (Brute-force vs. Region Proposals)
 - Build CNN classifier
-- Slide window over image
-- Classify each region
+- Slide window over image (sliding window)
+- Generate region proposals using selective search (R-CNN concept)
+- Classify each region/proposal
 
 ### Learn:
 - Why brute force detection is slow
 - Bounding box idea
+- Region proposal concept (Selective Search)
 
 ---
 
@@ -112,4 +114,4 @@
 ---
 
 ## Final Path Summary
-Sliding Window → Fast R-CNN → IoU/NMS → Faster R-CNN → YOLO → Mini YOLO → DETR → Tracking/Segmentation → Production
+R-CNN & Sliding Window → Fast R-CNN → IoU/NMS → Faster R-CNN → YOLO → Mini YOLO → DETR → Tracking/Segmentation → Production

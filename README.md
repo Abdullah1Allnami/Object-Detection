@@ -14,7 +14,7 @@ graph TD
     classDef active fill:#1e3a8a,stroke:#3b82f6,stroke-width:3px,color:#eff6ff;
     classDef done fill:#064e3b,stroke:#10b981,stroke-width:3px,color:#ecfdf5;
 
-    Step1["Step 1: Sliding Window Detector (Classic Approach) (Done)"]:::done
+    Step1["Step 1: R-CNN & Sliding Window Detectors (Done)"]:::done
     Step2["Step 2: Region Proposals (Fast R-CNN concept) (Current)"]:::active
     Step3["Step 3: Core Architecture (IoU + Anchors + NMS)"]:::planned
     Step4["Step 4: Faster R-CNN (Two-Stage Detectors)"]:::planned
@@ -42,8 +42,8 @@ graph TD
 
 | Step | Module Name & Folder | Status | Key Focus Area | Preview | Live App |
 |:---:|:---|:---:|:---|:---:|:---:|
-| 1 | [1-Sliding-Window-Detector](./1-Sliding-Window-Detector) | **Complete** | Brute-force classification search, stride/window hyperparams, custom ResNet50 classifier model training on MNIST, batched PyTorch GPU/CPU inference, and Non-Maximum Suppression (NMS) | <img src="./1-Sliding-Window-Detector/sliding_window.png" width="160" alt="Sliding Window"> | Yes (Flask + HTML5 Canvas) |
-| 2 | [2-Region-Proposals(Fast_R-CNN_Idea)](./2-Region-Proposals\(Fast_R-CNN_Idea\)) | *In Progress* | Selective Search, structural bounding box proposal generation, once-per-image feature extraction, and RoI Pooling concepts | <img src="./1-Sliding-Window-Detector/selective_search.png" width="160" alt="Selective Search"> | Planned |
+| 1 | [1-R-CNN+Sliding-Window(Detectors)](./1-R-CNN+Sliding-Window\(Detectors\)) | **Complete** | Classic brute-force sliding window search vs. region proposal (R-CNN) detectors, stride/window hyperparams, custom ResNet50 classifier model training on MNIST, batched PyTorch GPU/CPU inference, and Non-Maximum Suppression (NMS) | <img src="./1-R-CNN+Sliding-Window(Detectors)/sliding_window.png" width="160" alt="Sliding Window"> | Yes (Flask + HTML5 Canvas) |
+| 2 | [2-Region-Proposals(Fast_R-CNN_Idea)](./2-Region-Proposals\(Fast_R-CNN_Idea\)) | *In Progress* | Selective Search, structural bounding box proposal generation, once-per-image feature extraction, and RoI Pooling concepts | <img src="./1-R-CNN+Sliding-Window(Detectors)/selective_search.png" width="160" alt="Selective Search"> | Planned |
 | 3 | [3-IoU+Anchors+NMS(Core-Concepts)](./3-IoU+Anchors+NMS\(Core-Concepts\)) | *Planned* | Mathematical IoU implementation, anchor box shape aspect ratios, and full vector-based multi-class NMS implementation from scratch | | Planned |
 | 4 | [4-Faster-R-CNN](./4-Faster-R-CNN) | *Planned* | Fully two-stage detector pipelines, Region Proposal Networks (RPN), bounding box regression loss, and torchvision fasterrcnn training | | Planned |
 | 5 | [5-YOLO(Single-stage-detection)](./5-YOLO\(Single-stage-detection\)) | *Planned* | One-stage end-to-end grid prediction, objectness confidence scores, and training ultralytics models on custom datasets | | Planned |
@@ -55,15 +55,15 @@ graph TD
 
 ---
 
-## Getting Started with Step 1: Sliding Window Detector
+## Getting Started with Step 1: R-CNN & Sliding Window Detectors
 
-The first folder contains a complete, interactive visualization tool showing how a standard image classifier is adapted into an object detector.
+The first folder contains a complete, interactive visualization tool showing how standard image classifiers are adapted into object detectors using both brute-force sliding window search and selective search region proposals (the core concept of R-CNN).
 
 ### Quick Start:
 1. Ensure you have Miniconda/Anaconda installed.
 2. Open your terminal and enter the first step's folder:
    ```bash
-   cd 1-Sliding-Window-Detector
+   cd "1-R-CNN+Sliding-Window(Detectors)"
    ```
 3. Create the conda environment and activate it:
    ```bash
@@ -76,7 +76,7 @@ The first folder contains a complete, interactive visualization tool showing how
    ```
 5. Open your web browser and navigate to: **`http://127.0.0.1:5001`**
 
-Read the full project detail and theory inside the [Step 1 README](./1-Sliding-Window-Detector/README.md).
+Read the full project detail and theory inside the [Step 1 README](./1-R-CNN+Sliding-Window\(Detectors\)/README.md).
 
 ---
 
