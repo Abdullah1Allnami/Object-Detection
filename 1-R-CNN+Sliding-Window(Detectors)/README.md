@@ -19,13 +19,6 @@ This repository serves as **Step 1** of the comprehensive [Object Detection Lear
 
 ---
 
-## Interface Preview
-
-![Application Interface](app_screenshop.png)
-*The modern glassmorphism dashboard running custom MNIST digit classification and live ResNet50 object detection.*
-
----
-
 ## Features
 
 * **Interactive Drawing Canvas**: Draw handwritten digits (0-9) dynamically on a custom HTML5 canvas to test digit detection.
@@ -78,9 +71,6 @@ Because window strides are small, adjacent windows covering the same object will
 1. Sort all raw detection boxes by confidence score $s_i$ in descending order.
 2. Select the box with the highest score, save it as a final detection, and remove it from the candidate list.
 3. Compute the **Intersection over Union (IoU)** between this box $B_{\text{best}}$ and all other remaining candidate boxes $B_j$:
-
-$$\text{IoU}(B_{\text{best}}, B_j) = \frac{\text{Area}(B_{\text{best}} \cap B_j)}{\text{Area}(B_{\text{best}} \cup B_j)}$
-
 4. Suppress (discard) any box $B_j$ where $\text{IoU}(B_{\text{best}}, B_j) \geq \text{Threshold}_{\text{IoU}}$ (typically $0.3$).
 5. Repeat until no candidate boxes remain.
 
@@ -141,9 +131,3 @@ The script will automatically:
 Open `http://127.0.0.1:5001` in your browser to begin exploring!
 
 ---
-
-## Learning Exercises to Try
-
-1. **Test Spatial Stride**: Select **Digit CNN**, draw a single number on the canvas, set the stride to `4`, and click **Animate Steps**. Notice how long the scan takes and how dense the raw hits are. Now set the stride to `30` and run again. Observe how much faster it finishes, and note if it fails to localize the digit correctly.
-2. **Train the Digit Model**: Delete the existing weights (or hit the **Train Classifier** button). Watch the progress update in real-time as PyTorch downloads MNIST and starts training. Once training finishes (approx. 1-2 minutes on CPU/MPS), draw a combination of multiple digits (e.g. `3` and `7`) side-by-side and run detection.
-3. **Verify NMS Influence**: Select **ResNet50**, choose the **Coffee Mug** sample, set the confidence to `0.50`, and run **Instant Detection**. Look at the stats at the bottom: compare **Raw Hits** to **Post-NMS Detections** to appreciate how NMS keeps the final visual clean.
