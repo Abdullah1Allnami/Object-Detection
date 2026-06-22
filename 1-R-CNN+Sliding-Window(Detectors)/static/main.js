@@ -48,7 +48,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const selectMethod = document.getElementById("select-method");
     const containerWindowSize = document.getElementById("container-window-size");
     const containerStride = document.getElementById("container-stride");
-    const inputPrompt = document.getElementById("input-prompt");
     const detectMethodBadge = document.getElementById("detect-method-badge");
 
     // Application State
@@ -125,15 +124,7 @@ document.addEventListener("DOMContentLoaded", () => {
     
     selectMethod.addEventListener("change", handleMethodChange);
 
-    inputPrompt.addEventListener("input", () => {
-        const val = inputPrompt.value.toLowerCase();
-        if (val.includes("selective")) {
-            selectMethod.value = "selective_search";
-        } else {
-            selectMethod.value = "sliding_window";
-        }
-        handleMethodChange();
-    });
+
 
     function updateMethodBadge(method) {
         if (method === "selective_search") {
@@ -578,7 +569,6 @@ document.addEventListener("DOMContentLoaded", () => {
             window_size: parseInt(sliderWindowSize.value),
             stride: parseInt(sliderStride.value),
             min_conf: parseFloat(sliderMinConf.value),
-            prompt: inputPrompt.value,
             method: selectMethod.value
         };
         
@@ -646,7 +636,6 @@ document.addEventListener("DOMContentLoaded", () => {
             window_size: parseInt(sliderWindowSize.value),
             stride: parseInt(sliderStride.value),
             min_conf: parseFloat(sliderMinConf.value),
-            prompt: inputPrompt.value,
             method: selectMethod.value
         };
         

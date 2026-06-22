@@ -102,12 +102,7 @@ def detect():
     win_size = int(data.get("window_size", 80))
     min_conf = float(data.get("min_conf", 0.70))
     
-    prompt = data.get("prompt", "")
-    method = "sliding_window"
-    if prompt:
-        prompt_lower = prompt.lower()
-        if "selective" in prompt_lower:
-            method = "selective_search"
+    method = data.get("method", "sliding_window")
             
     # Decode base64 image
     img_data = data["image"]
@@ -163,4 +158,4 @@ def detect():
     })
 
 if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=5001, debug=True)
+    app.run(host="127.0.0.1", port=5002, debug=True)

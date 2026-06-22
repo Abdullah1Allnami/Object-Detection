@@ -25,7 +25,7 @@ def selective_search(cv_image, min_size=30, max_size=200):
     gray = cv2.cvtColor(cv_image, cv2.COLOR_BGR2GRAY)
     
     # 1. Use MSER (Maximally Stable Extremal Regions)
-    mser = cv2.MSER_create(_min_area=min_size*min_size, _max_area=max_size*max_size)
+    mser = cv2.MSER_create(min_area=min_size*min_size, max_area=max_size*max_size)
     regions, _ = mser.detectRegions(gray)
     for p in regions:
         # Get bounding box

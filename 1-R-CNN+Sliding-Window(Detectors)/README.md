@@ -11,6 +11,14 @@ This repository serves as **Step 1** of the comprehensive [Object Detection Lear
 
 ---
 
+## Visual Previews
+
+| Sliding Window Search (Step 1) | Selective Search Proposals (Step 2) |
+| :---: | :---: |
+| ![Sliding Window](sliding_window.png) | ![Selective Search](selective_search.png) |
+
+---
+
 ## Interface Preview
 
 ![Application Interface](app_screenshop.png)
