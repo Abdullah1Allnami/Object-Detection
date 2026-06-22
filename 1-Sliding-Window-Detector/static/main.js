@@ -45,6 +45,12 @@ document.addEventListener("DOMContentLoaded", () => {
     const statRawHits = document.getElementById("stat-raw-hits");
     const statFinalDetections = document.getElementById("stat-final-detections");
 
+    const selectMethod = document.getElementById("select-method");
+    const containerWindowSize = document.getElementById("container-window-size");
+    const containerStride = document.getElementById("container-stride");
+    const inputPrompt = document.getElementById("input-prompt");
+    const detectMethodBadge = document.getElementById("detect-method-badge");
+
     // Application State
     let activeModel = "digit"; // "digit" or "resnet50"
     let animationFrameId = null;
@@ -103,6 +109,41 @@ document.addEventListener("DOMContentLoaded", () => {
     sliderMinConf.addEventListener("input", (e) => {
         valMinConf.textContent = parseFloat(e.target.value).toFixed(2);
     });
+
+    // --- Search Method Dropdown & Prompt Logic ---
+    function handleMethodChange() {
+        if (selectMethod.value === "selective_search") {
+            containerWindowSize.classList.add("hidden");
+            containerStride.classList.add("hidden");
+            updateMethodBadge("selective_search");
+        } else {
+            containerWindowSize.classList.remove("hidden");
+            containerStride.classList.remove("hidden");
+            updateMethodBadge("sliding_window");
+        }
+    }
+    
+    selectMethod.addEventListener("change", handleMethodChange);
+
+    inputPrompt.addEventListener("input", () => {
+        const val = inputPrompt.value.toLowerCase();
+        if (val.includes("selective")) {
+            selectMethod.value = "selective_search";
+        } else {
+            selectMethod.value = "sliding_window";
+        }
+        handleMethodChange();
+    });
+
+    function updateMethodBadge(method) {
+        if (method === "selective_search") {
+            detectMethodBadge.textContent = "Selective Search";
+            detectMethodBadge.className = "badge badge-success";
+        } else {
+            detectMethodBadge.textContent = "Sliding Window";
+            detectMethodBadge.className = "badge";
+        }
+    }
 
     // --- Model Toggle Switch ---
     btnModelDigit.addEventListener("click", () => {
@@ -536,7 +577,9 @@ document.addEventListener("DOMContentLoaded", () => {
             model_type: activeModel,
             window_size: parseInt(sliderWindowSize.value),
             stride: parseInt(sliderStride.value),
-            min_conf: parseFloat(sliderMinConf.value)
+            min_conf: parseFloat(sliderMinConf.value),
+            prompt: inputPrompt.value,
+            method: selectMethod.value
         };
         
         fetch("/api/detect", {
@@ -551,6 +594,9 @@ document.addEventListener("DOMContentLoaded", () => {
             return res.json();
         })
         .then(data => {
+            // Update active method badge
+            updateMethodBadge(data.method);
+            
             // Render instant results
             statTotalSteps.textContent = data.all_steps.length;
             
@@ -599,7 +645,9 @@ document.addEventListener("DOMContentLoaded", () => {
             model_type: activeModel,
             window_size: parseInt(sliderWindowSize.value),
             stride: parseInt(sliderStride.value),
-            min_conf: parseFloat(sliderMinConf.value)
+            min_conf: parseFloat(sliderMinConf.value),
+            prompt: inputPrompt.value,
+            method: selectMethod.value
         };
         
         fetch("/api/detect", {
@@ -614,6 +662,9 @@ document.addEventListener("DOMContentLoaded", () => {
             return res.json();
         })
         .then(data => {
+            // Update active method badge
+            updateMethodBadge(data.method);
+            
             runSlidingWindowAnimation(data.all_steps, data.final_detections);
         })
         .catch(err => {

@@ -13,6 +13,66 @@ def sliding_window(image_width, image_height, step_size, window_size):
         for x in range(0, image_width - win_w + 1, step_size):
             yield (x, y, win_w, win_h)
 
+def selective_search(cv_image, min_size=30, max_size=200):
+    """
+    Generate candidate bounding boxes (x, y, w, h) using OpenCV MSER and multi-scale contours.
+    This serves as a high-quality, dependency-free selective search/region proposal generator.
+    """
+    h, w = cv_image.shape[:2]
+    candidates = set()
+    
+    # Convert to grayscale
+    gray = cv2.cvtColor(cv_image, cv2.COLOR_BGR2GRAY)
+    
+    # 1. Use MSER (Maximally Stable Extremal Regions)
+    mser = cv2.MSER_create(_min_area=min_size*min_size, _max_area=max_size*max_size)
+    regions, _ = mser.detectRegions(gray)
+    for p in regions:
+        # Get bounding box
+        x, y, ww, hh = cv2.boundingRect(p)
+        if min_size <= ww <= max_size and min_size <= hh <= max_size:
+            candidates.add((x, y, ww, hh))
+            
+    # 2. Use Multi-scale thresholding and contours
+    thresholds = [50, 100, 150, 200]
+    for thresh_val in thresholds:
+        _, thresh = cv2.threshold(gray, thresh_val, 255, cv2.THRESH_BINARY_INV)
+        contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        for c in contours:
+            x, y, ww, hh = cv2.boundingRect(c)
+            if min_size <= ww <= max_size and min_size <= hh <= max_size:
+                candidates.add((x, y, ww, hh))
+                
+        _, thresh_normal = cv2.threshold(gray, thresh_val, 255, cv2.THRESH_BINARY)
+        contours_normal, _ = cv2.findContours(thresh_normal, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        for c in contours_normal:
+            x, y, ww, hh = cv2.boundingRect(c)
+            if min_size <= ww <= max_size and min_size <= hh <= max_size:
+                candidates.add((x, y, ww, hh))
+
+    # 3. Filter out redundant/highly overlapping boxes using NMS/IoU
+    sorted_candidates = sorted(list(candidates), key=lambda box: box[2] * box[3])
+    
+    unique_candidates = []
+    for box in sorted_candidates:
+        x, y, ww, hh = box
+        boxA = [x, y, x + ww, y + hh]
+        
+        is_duplicate = False
+        for u_box in unique_candidates:
+            ux, uy, uww, uhh = u_box
+            boxB = [ux, uy, ux + uww, uy + uhh]
+            
+            # If IoU is very high, skip it
+            if compute_iou(boxA, boxB) > 0.85:
+                is_duplicate = True
+                break
+                
+        if not is_duplicate:
+            unique_candidates.append(box)
+            
+    return unique_candidates
+
 def compute_iou(boxA, boxB):
     """
     Compute Intersection over Union (IoU) of two bounding boxes.
@@ -92,9 +152,9 @@ def non_max_suppression(detections, iou_threshold=0.3):
             
     return keep_detections
 
-def run_detection_mnist(model, cv_image, step_size, window_size, min_conf, device):
+def run_detection_mnist(model, cv_image, step_size, window_size, min_conf, device, method="sliding_window"):
     """
-    Run sliding window detection using the custom MNIST digit model with batched inference.
+    Run detection using the custom MNIST digit model with batched inference.
     """
     h, w = cv_image.shape[:2]
     win_w, win_h = window_size
@@ -116,7 +176,10 @@ def run_detection_mnist(model, cv_image, step_size, window_size, min_conf, devic
     model.eval()
     
     # Generate windows
-    windows = list(sliding_window(w, h, step_size, window_size))
+    if method == "selective_search":
+        windows = selective_search(cv_image, min_size=30, max_size=200)
+    else:
+        windows = list(sliding_window(w, h, step_size, window_size))
     
     # Identify which windows need model inference
     active_crops = [] # list of (idx, crop_resized)
@@ -193,9 +256,9 @@ def run_detection_mnist(model, cv_image, step_size, window_size, min_conf, devic
     
     return all_steps, final_detections
 
-def run_detection_resnet50(model, categories, cv_image, step_size, window_size, min_conf, device):
+def run_detection_resnet50(model, categories, cv_image, step_size, window_size, min_conf, device, method="sliding_window"):
     """
-    Run sliding window detection using pre-trained ResNet50 with batched inference.
+    Run detection using pre-trained ResNet50 with batched inference.
     """
     h, w = cv_image.shape[:2]
     win_w, win_h = window_size
@@ -206,7 +269,10 @@ def run_detection_resnet50(model, categories, cv_image, step_size, window_size, 
     model.eval()
     
     # Generate windows
-    windows = list(sliding_window(w, h, step_size, window_size))
+    if method == "selective_search":
+        windows = selective_search(cv_image, min_size=30, max_size=200)
+    else:
+        windows = list(sliding_window(w, h, step_size, window_size))
     
     # Preprocess all crops
     crops_tensors = []

@@ -79,12 +79,22 @@
                     </div>
                 </div>
 
-                <!-- Hyperparameters Sliders -->
+                <!-- Search Method Dropdown -->
                 <div class="control-group">
-                    <label class="group-title">2. Sliding Window Hyperparams</label>
+                    <label class="group-title" for="select-method">2. Search Method</label>
+                    <select id="select-method" class="glass-select">
+                        <option value="sliding_window">Sliding Window</option>
+                        <option value="selective_search">Selective Search</option>
+                    </select>
+                    <p class="help-text">Choose the search region extraction method.</p>
+                </div>
+
+                <!-- Hyperparameters Sliders -->
+                <div class="control-group" id="hyperparams-section">
+                    <label class="group-title">3. Sliding Window Hyperparams</label>
                     
                     <!-- Window Size -->
-                    <div class="slider-container">
+                    <div class="slider-container" id="container-window-size">
                         <div class="slider-header">
                             <span>Window Size (px)</span>
                             <span class="value-display" id="val-window-size">80</span>
@@ -94,7 +104,7 @@
                     </div>
 
                     <!-- Stride -->
-                    <div class="slider-container">
+                    <div class="slider-container" id="container-stride">
                         <div class="slider-header">
                             <span>Stride / Step Size (px)</span>
                             <span class="value-display" id="val-stride">16</span>
@@ -176,6 +186,7 @@
                 <div class="panel-header">
                     <i class="fa-solid fa-circle-nodes"></i>
                     <h2>Detection Visualization</h2>
+                    <span id="detect-method-badge" class="badge" style="margin-left: auto;">Sliding Window</span>
                 </div>
 
                 <div class="visualization-container">

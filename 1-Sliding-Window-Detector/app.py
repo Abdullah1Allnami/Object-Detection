@@ -102,6 +102,13 @@ def detect():
     win_size = int(data.get("window_size", 80))
     min_conf = float(data.get("min_conf", 0.70))
     
+    prompt = data.get("prompt", "")
+    method = "sliding_window"
+    if prompt:
+        prompt_lower = prompt.lower()
+        if "selective" in prompt_lower:
+            method = "selective_search"
+            
     # Decode base64 image
     img_data = data["image"]
     if "," in img_data:
@@ -131,7 +138,8 @@ def detect():
             step_size=stride,
             window_size=window_size,
             min_conf=min_conf,
-            device=device
+            device=device,
+            method=method
         )
     elif model_type in ["mobilenet", "resnet50"]:
         model, categories = get_resnet50_model()
@@ -142,14 +150,16 @@ def detect():
             step_size=stride,
             window_size=window_size,
             min_conf=min_conf,
-            device=device
+            device=device,
+            method=method
         )
     else:
         return jsonify({"error": "Invalid model type"}), 400
         
     return jsonify({
         "all_steps": all_steps,
-        "final_detections": final_detections
+        "final_detections": final_detections,
+        "method": method
     })
 
 if __name__ == "__main__":
