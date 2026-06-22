@@ -9,7 +9,9 @@ __pycache__/
 data/
 
 *.pth
+.DS_Store
 
+**/.DS_Store
 
 # Distribution / packaging
 .Python
