@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sliding Window Object Detector - Learning Center</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom Style -->
+    <link rel="stylesheet" href="/static/style.css">
+    <!-- Custom Script -->
+    <script src="/static/main.js" defer></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="logo">
+                <i class="fa-solid fa-microscope glow-icon"></i>
+                <h1>Sliding Window Detector</h1>
+                <span class="badge">Roadmap Step 1</span>
+            </div>
+            <p class="subtitle">Understand classic brute-force object detection by visualizing CNN classification in real-time.</p>
+        </header>
+
+        <!-- Main Workspace -->
+        <div class="workspace-grid">
+            
+            <!-- COLUMN 1: Controls -->
+            <section class="panel glass controls-panel">
+                <div class="panel-header">
+                    <i class="fa-solid fa-sliders"></i>
+                    <h2>Detection Settings</h2>
+                </div>
+                
+                <!-- Model Selection -->
+                <div class="control-group">
+                    <label class="group-title">1. Choose Classifier Model</label>
+                    <div class="toggle-buttons">
+                        <button type="button" id="btn-model-digit" class="toggle-btn active" data-model="digit">
+                            <i class="fa-solid fa-pen-fancy"></i>
+                            <span>Custom Digit CNN</span>
+                        </button>
+                        <button type="button" id="btn-model-resnet50" class="toggle-btn" data-model="resnet50">
+                            <i class="fa-solid fa-images"></i>
+                            <span>ResNet50 (ImageNet)</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Custom CNN Training Status (Visible only for Digit Model) -->
+                <div id="digit-training-section" class="control-group training-box glass-inset">
+                    <div class="training-header">
+                        <span>Digit Model Weights:</span>
+                        <span id="model-status-badge" class="badge badge-warning">Checking...</span>
+                    </div>
+                    <p id="model-status-text" class="help-text">Please train the model on MNIST before running detection.</p>
+                    
+                    <button id="btn-train-model" class="btn btn-secondary">
+                        <i class="fa-solid fa-dumbbell"></i> Train Classifier (MNIST)
+                    </button>
+                    
+                    <div id="training-progress-container" class="progress-container hidden">
+                        <div class="progress-bar-wrapper">
+                            <div id="training-progress-bar" class="progress-bar" style="width: 0%;"></div>
+                        </div>
+                        <div class="progress-stats">
+                            <span id="training-progress-msg">Downloading MNIST dataset...</span>
+                            <span id="training-progress-pct">0%</span>
+                        </div>
+                        <div id="training-metrics" class="metrics hidden">
+                            <span>Loss: <strong id="metric-loss">-</strong></span>
+                            <span>Acc: <strong id="metric-acc">-</strong></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Hyperparameters Sliders -->
+                <div class="control-group">
+                    <label class="group-title">2. Sliding Window Hyperparams</label>
+                    
+                    <!-- Window Size -->
+                    <div class="slider-container">
+                        <div class="slider-header">
+                            <span>Window Size (px)</span>
+                            <span class="value-display" id="val-window-size">80</span>
+                        </div>
+                        <input type="range" id="slider-window-size" min="30" max="200" step="5" value="80">
+                        <p class="help-text">Size of the classifier's field of view.</p>
+                    </div>
+
+                    <!-- Stride -->
+                    <div class="slider-container">
+                        <div class="slider-header">
+                            <span>Stride / Step Size (px)</span>
+                            <span class="value-display" id="val-stride">16</span>
+                        </div>
+                        <input type="range" id="slider-stride" min="4" max="60" step="2" value="16">
+                        <p class="help-text">Distance the window moves in each step. Smaller stride = more thorough but slower.</p>
+                    </div>
+
+                    <!-- Confidence Threshold -->
+                    <div class="slider-container">
+                        <div class="slider-header">
+                            <span>Confidence Threshold</span>
+                            <span class="value-display" id="val-min-conf">0.70</span>
+                        </div>
+                        <input type="range" id="slider-min-conf" min="0.10" max="0.95" step="0.05" value="0.70">
+                        <p class="help-text">Minimum CNN output probability to trigger a detection.</p>
+                    </div>
+                </div>
+
+                <!-- Action Triggers -->
+                <div class="action-buttons">
+                    <button id="btn-detect-instant" class="btn btn-primary">
+                        <i class="fa-solid fa-bolt"></i> Run Instant Detection
+                    </button>
+                    <button id="btn-detect-animate" class="btn btn-accent">
+                        <i class="fa-solid fa-play"></i> Animate Steps
+                    </button>
+                    <button id="btn-stop" class="btn btn-danger hidden">
+                        <i class="fa-solid fa-stop"></i> Stop Animation
+                    </button>
+                </div>
+            </section>
+
+            <!-- COLUMN 2: Input Workspace -->
+            <section class="panel glass workspace-panel">
+                <div class="panel-header">
+                    <i class="fa-solid fa-pen-ruler"></i>
+                    <h2>Input Source</h2>
+                    <span class="header-hint" id="workspace-hint">Draw multiple digits here</span>
+                </div>
+
+                <!-- Workspace Content -->
+                <div class="workspace-viewport">
+                    
+                    <!-- Digit Canvas Workspace -->
+                    <div id="digit-workspace" class="input-area active">
+                        <div class="canvas-container">
+                            <canvas id="drawing-canvas" width="400" height="400"></canvas>
+                        </div>
+                        <div class="canvas-controls">
+                            <button id="btn-clear-canvas" class="btn btn-outline">
+                                <i class="fa-solid fa-eraser"></i> Clear Canvas
+                            </button>
+                            <span class="help-text">Draw digits (0-9) clearly in black on the canvas. Draw several separate digits!</span>
+                        </div>
+                    </div>
+
+                    <!-- ResNet50 Upload Workspace -->
+                    <div id="resnet50-workspace" class="input-area">
+                        <div id="upload-dropzone" class="dropzone">
+                            <input type="file" id="file-input" accept="image/*" class="hidden">
+                            <i class="fa-solid fa-cloud-arrow-up cloud-icon"></i>
+                            <h3>Drag & Drop Image Here</h3>
+                            <p>or click to browse local files</p>
+                            <span class="format-note">Supports PNG, JPG, JPEG</span>
+                        </div>
+                        <div class="sample-images">
+                            <span>Or try sample:</span>
+                            <button class="sample-btn" data-sample="mug">Coffee Mug</button>
+                            <button class="sample-btn" data-sample="keyboard">Keyboard</button>
+                            <button class="sample-btn" data-sample="mouse">Computer Mouse</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- COLUMN 3: Visualization & Dashboard -->
+            <section class="panel glass visualization-panel">
+                <div class="panel-header">
+                    <i class="fa-solid fa-circle-nodes"></i>
+                    <h2>Detection Visualization</h2>
+                </div>
+
+                <div class="visualization-container">
+                    <div class="render-box">
+                        <!-- Source image drawn here for overlays -->
+                        <canvas id="viz-canvas" width="400" height="400"></canvas>
+                        <!-- Heatmap Overlay -->
+                        <canvas id="heatmap-canvas" width="400" height="400" class="hidden"></canvas>
+                        <!-- SVG for boxes overlays -->
+                        <div id="detection-overlay" class="overlay-container"></div>
+                        <!-- Current sliding window box overlay (HTML/CSS) -->
+                        <div id="sliding-box-guide" class="sliding-box-guide hidden"></div>
+                    </div>
+                </div>
+
+                <!-- Live Evaluation Panel -->
+                <div class="live-evaluation-dashboard glass-inset">
+                    <div class="live-crop-section">
+                        <div class="section-title">CNN Evaluated Window Crop</div>
+                        <div class="crop-preview-box">
+                            <canvas id="crop-canvas" width="80" height="80"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="live-predictions-section">
+                        <div class="section-title">Classifier Softmax Output</div>
+                        <div id="predictions-bars" class="predictions-bars">
+                            <!-- Populated by JavaScript -->
+                            <div class="predictions-empty">Waiting to start detection...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stats Footer -->
+                <div class="stats-row">
+                    <div class="stat-card">
+                        <span class="stat-lbl">Total Steps</span>
+                        <strong id="stat-total-steps">-</strong>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-lbl">Raw Hits</span>
+                        <strong id="stat-raw-hits">-</strong>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-lbl">Post-NMS Detections</span>
+                        <strong id="stat-final-detections">-</strong>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- Concept Explainer -->
+        <section class="panel glass explainer-panel">
+            <div class="panel-header">
+                <i class="fa-solid fa-graduation-cap"></i>
+                <h2>How does it work? (Roadmap Concept Explainer)</h2>
+            </div>
+            <div class="explainer-content">
+                <div class="explainer-item">
+                    <h3><i class="fa-solid fa-cube"></i> 1. The Classifier</h3>
+                    <p>Standard CNN classifiers (like our Custom Digit ResNet50 or pre-trained ResNet50) only answer: <em>"What is the single main object in this cropped square?"</em>. They cannot localize multiple objects or detect empty space natively.</p>
+                </div>
+                <div class="explainer-item">
+                    <h3><i class="fa-solid fa-arrows-to-eye"></i> 2. The Sliding Window</h3>
+                    <p>To detect *where* objects are in a larger scene, we slide a bounding box over the entire image step-by-step. Each cropped window is sent to the classifier. Detections exceeding our <strong>Confidence Threshold</strong> are flagged.</p>
+                </div>
+                <div class="explainer-item">
+                    <h3><i class="fa-solid fa-compress"></i> 3. Non-Maximum Suppression (NMS)</h3>
+                    <p>Since stride is small, a single object yields many overlapping hits. **NMS** calculates overlap (IoU) and retains only the box with the highest classification score, suppressing duplicate overlapping predictions. This is step 3 in the roadmap!</p>
+                </div>
+            </div>
+        </section>
+    </div>
+</body>
+</html>
