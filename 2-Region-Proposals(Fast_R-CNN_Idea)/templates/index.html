@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Region Proposals & Fast R-CNN - Learning Center</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom Style -->
+    <link rel="stylesheet" href="/static/style.css">
+    <!-- Custom Script -->
+    <script src="/static/main.js" defer></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="logo">
+                <i class="fa-solid fa-layer-group glow-icon"></i>
+                <h1>Region Proposals (Fast R-CNN)</h1>
+                <span class="badge">Roadmap Step 2</span>
+            </div>
+            <p class="subtitle">Understand once-per-image feature extraction, RoI pooling, and bounding box regression offsets.</p>
+        </header>
+
+        <!-- Main Workspace -->
+        <div class="workspace-grid">
+            
+            <!-- COLUMN 1: Controls & Training -->
+            <section class="panel glass controls-panel">
+                <div class="panel-header">
+                    <i class="fa-solid fa-sliders"></i>
+                    <h2>Detector Settings</h2>
+                </div>
+                
+                <!-- Model Selection -->
+                <div class="control-group">
+                    <label class="group-title">1. Choose Backbone & Heads</label>
+                    <div class="toggle-buttons">
+                        <button type="button" id="btn-model-digit" class="toggle-btn active" data-model="digit">
+                            <i class="fa-solid fa-pen-fancy"></i>
+                            <span>Digit Fast R-CNN</span>
+                        </button>
+                        <button type="button" id="btn-model-resnet50" class="toggle-btn" data-model="resnet50">
+                            <i class="fa-solid fa-network-wired"></i>
+                            <span>ResNet50 (ImageNet)</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Custom CNN Training Status (Visible only for Digit Model) -->
+                <div id="digit-training-section" class="control-group training-box glass-inset">
+                    <div class="training-header">
+                        <span>Model Training Status:</span>
+                        <span id="model-status-badge" class="badge badge-warning">Checking...</span>
+                    </div>
+                    <p id="model-status-text" class="help-text">Training required to learn classification & bounding box regression offsets.</p>
+                    
+                    <button id="btn-train-model" class="btn btn-secondary">
+                        <i class="fa-solid fa-dumbbell"></i> Train Fast R-CNN (MNIST)
+                    </button>
+                    
+                    <div id="training-progress-container" class="progress-container hidden">
+                        <div class="progress-bar-wrapper">
+                            <div id="training-progress-bar" class="progress-bar" style="width: 0%;"></div>
+                        </div>
+                        <div class="progress-stats">
+                            <span id="training-progress-msg">Preparing dataset...</span>
+                            <span id="training-progress-pct">0%</span>
+                        </div>
+                        <div id="training-metrics" class="metrics hidden">
+                            <span>Loss: <strong id="metric-loss">-</strong></span>
+                            <span>Acc: <strong id="metric-acc">-</strong></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Hyperparameters Sliders -->
+                <div class="control-group">
+                    <label class="group-title">2. Inference Hyperparams</label>
+                    
+                    <!-- Confidence Threshold -->
+                    <div class="slider-container">
+                        <div class="slider-header">
+                            <span>Confidence Threshold</span>
+                            <span class="value-display" id="val-min-conf">0.70</span>
+                        </div>
+                        <input type="range" id="slider-min-conf" min="0.10" max="0.95" step="0.05" value="0.70">
+                        <p class="help-text">Minimum score required to output a detection.</p>
+                    </div>
+
+                    <!-- Max Proposals to Inspect -->
+                    <div class="slider-container">
+                        <div class="slider-header">
+                            <span>Max Proposals to Display</span>
+                            <span class="value-display" id="val-max-props">40</span>
+                        </div>
+                        <input type="range" id="slider-max-props" min="10" max="100" step="5" value="40">
+                        <p class="help-text">Limits region proposals overlay to keep drawing clear.</p>
+                    </div>
+                </div>
+
+                <!-- Action Triggers -->
+                <div class="action-buttons">
+                    <button id="btn-detect-instant" class="btn btn-primary">
+                        <i class="fa-solid fa-bolt"></i> Run Fast R-CNN
+                    </button>
+                </div>
+            </section>
+
+            <!-- COLUMN 2: Input & Workspace -->
+            <section class="panel glass workspace-panel">
+                <div class="panel-header">
+                    <i class="fa-solid fa-pen-ruler"></i>
+                    <h2>Input Source</h2>
+                    <span class="header-hint" id="workspace-hint">Draw multiple separate digits</span>
+                </div>
+
+                <!-- Workspace Viewport -->
+                <div class="workspace-viewport">
+                    <!-- Digit Drawing Canvas -->
+                    <div id="digit-workspace" class="input-area active">
+                        <div class="canvas-container">
+                            <canvas id="drawing-canvas" width="256" height="256"></canvas>
+                        </div>
+                        <div class="canvas-controls">
+                            <button id="btn-clear-canvas" class="btn btn-outline">
+                                <i class="fa-solid fa-eraser"></i> Clear Canvas
+                            </button>
+                            <span class="help-text">Draw digits (e.g. 3, 5, 8) spaced out from each other.</span>
+                        </div>
+                    </div>
+
+                    <!-- Image Upload -->
+                    <div id="resnet50-workspace" class="input-area">
+                        <div id="upload-dropzone" class="dropzone">
+                            <input type="file" id="file-input" accept="image/*" class="hidden">
+                            <i class="fa-solid fa-cloud-arrow-up cloud-icon"></i>
+                            <h3>Upload Image</h3>
+                            <p>or click to browse</p>
+                        </div>
+                        <div class="sample-images">
+                            <span>Samples:</span>
+                            <button class="sample-btn" data-sample="mug">Mug</button>
+                            <button class="sample-btn" data-sample="keyboard">Keyboard</button>
+                            <button class="sample-btn" data-sample="mouse">Mouse</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- COLUMN 3: Visualization & Interactive Overlays -->
+            <section class="panel glass visualization-panel">
+                <div class="panel-header">
+                    <i class="fa-solid fa-eye"></i>
+                    <h2>Visualizer</h2>
+                    <div class="toggle-buttons mini-toggle" style="margin-left: auto;">
+                        <button id="btn-view-proposals" class="toggle-btn active" title="Show Proposals">Proposals</button>
+                        <button id="btn-view-features" class="toggle-btn" title="Show Convolutional Feature Map Heatmap">Feature Map</button>
+                        <button id="btn-view-detections" class="toggle-btn" title="Show Final Filtered Detections">Detections</button>
+                    </div>
+                </div>
+
+                <div class="visualization-container">
+                    <div class="render-box" id="render-box">
+                        <canvas id="viz-canvas" width="256" height="256"></canvas>
+                        <canvas id="heatmap-canvas" width="256" height="256" class="hidden"></canvas>
+                        <div id="proposal-interactive-layer" class="overlay-container"></div>
+                        <div id="detection-overlay" class="overlay-container"></div>
+                    </div>
+                    <p class="help-text text-center text-muted" id="interact-hint">Run detection to explore proposal regions. Hover/click proposals to inspect.</p>
+                </div>
+
+                <!-- Stats Row -->
+                <div class="stats-row">
+                    <div class="stat-card">
+                        <span class="stat-lbl">Proposals (Selective Search)</span>
+                        <strong id="stat-total-props">-</strong>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-lbl">Raw Hits</span>
+                        <strong id="stat-raw-hits">-</strong>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-lbl">Final Detections</span>
+                        <strong id="stat-final-detections">-</strong>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- LOWER SECTION: Sibling Heads & RoI Pooling Inspector -->
+        <div class="lower-grid">
+            <!-- ROI Pooling Inspector Panel -->
+            <section class="panel glass inspector-panel">
+                <div class="panel-header">
+                    <i class="fa-solid fa-magnifying-glass-chart"></i>
+                    <h2>Interactive RoI Pool Inspector</h2>
+                    <span class="badge badge-accent hidden" id="inspector-active-badge">Active</span>
+                </div>
+                
+                <div class="inspector-grid" id="inspector-content">
+                    <div class="inspector-empty-state">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i>
+                        <p>Run Fast R-CNN and hover/click over a region proposal in the Visualizer to inspect how RoI Pooling extracts its feature grid and feeds the classification and regression heads.</p>
+                    </div>
+                    
+                    <!-- Content populated by main.js when proposal hovered -->
+                    <div class="inspector-full-state hidden">
+                        <!-- Step 1: Projection -->
+                        <div class="inspector-card glass-inset">
+                            <h3><i class="fa-solid fa-arrows-split-up-and-left"></i> 1. RoI Projection</h3>
+                            <div class="coords-box">
+                                <p><strong>Image Coord (x, y, w, h):</strong> <span id="roi-img-coords">-</span></p>
+                                <p><strong>Stride Downsampling:</strong> <span id="roi-downsample-ratio">1/32 (0.03125)</span></p>
+                                <p><strong>Projected Conv Coord:</strong> <span id="roi-conv-coords">-</span></p>
+                            </div>
+                            <div class="visual-explanation-box">
+                                <p class="small-text text-muted">The region coordinates are scaled down by the backbone's cumulative stride. The bounding box is projected directly onto the feature map grid.</p>
+                            </div>
+                        </div>
+
+                        <!-- Step 2: RoI Pooling Grid -->
+                        <div class="inspector-card glass-inset">
+                            <h3><i class="fa-solid fa-border-all"></i> 2. 7x7 RoI Pooling Grid</h3>
+                            <div class="roi-grid-container">
+                                <div id="roi-pooled-grid" class="roi-pooled-grid">
+                                    <!-- 49 cells populated by JS -->
+                                </div>
+                            </div>
+                            <div class="visual-explanation-box">
+                                <p class="small-text text-muted">Varying proposed shapes are mapped to a fixed 7x7 shape by dividing the projected region into a 7x7 grid and max-pooling within each sub-window.</p>
+                            </div>
+                        </div>
+
+                        <!-- Step 3: Classification Head -->
+                        <div class="inspector-card glass-inset">
+                            <h3><i class="fa-solid fa-tag"></i> 3. Classification Head</h3>
+                            <div id="cls-probability-list" class="cls-probability-list">
+                                <!-- Bars populated by JS -->
+                            </div>
+                        </div>
+
+                        <!-- Step 4: Bounding Box Regression Head -->
+                        <div class="inspector-card glass-inset">
+                            <h3><i class="fa-solid fa-vector-square"></i> 4. Bbox Regression Head</h3>
+                            <div class="regression-box">
+                                <div class="offset-badge-row">
+                                    <div class="offset-badge">dx: <span id="off-dx">-</span></div>
+                                    <div class="offset-badge">dy: <span id="off-dy">-</span></div>
+                                    <div class="offset-badge">dw: <span id="off-dw">-</span></div>
+                                    <div class="offset-badge">dh: <span id="off-dh">-</span></div>
+                                </div>
+                                <div class="box-comparison-box">
+                                    <p><i class="fa-solid fa-square-minus text-red"></i> <strong>Original Proposal:</strong> <span id="comp-prop-box">-</span></p>
+                                    <p><i class="fa-solid fa-square-plus text-green"></i> <strong>Refined Box:</strong> <span id="comp-ref-box">-</span></p>
+                                </div>
+                            </div>
+                            <div class="visual-explanation-box">
+                                <p class="small-text text-muted">The regression head outputs linear offsets and exponential log scale shifts to transform the proposal coordinates into the refined final shape.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- Performance / FLOPs Calculator -->
+        <section class="panel glass performance-panel">
+            <div class="panel-header">
+                <i class="fa-solid fa-calculator animate-pulse"></i>
+                <h2>Computational Efficiency: Classic R-CNN vs. Fast R-CNN</h2>
+            </div>
+            <div class="performance-content">
+                <div class="perf-metric-row">
+                    <div class="perf-card glass-inset">
+                        <h3>Classic R-CNN / Sliding Window</h3>
+                        <p class="desc">Crop every proposal from image, resize it, and run the entire backbone network separately.</p>
+                        <div class="formula-box">
+                            <span class="math">FLOPs = N_{proposals} \times FLOPs_{Backbone}</span>
+                            <span class="calc-val" id="calc-classic-flops">- GigaFLOPs</span>
+                        </div>
+                    </div>
+                    <div class="perf-divider">
+                        <i class="fa-solid fa-arrow-right-arrow-left"></i>
+                        <span id="calc-savings-badge" class="badge badge-accent">-x Faster</span>
+                    </div>
+                    <div class="perf-card glass-inset">
+                        <h3>Fast R-CNN (Shared Features)</h3>
+                        <p class="desc">Extract features for full image once. Project proposals, RoI pool, and run lightweight sibling heads.</p>
+                        <div class="formula-box">
+                            <span class="math">FLOPs = FLOPs_{Backbone} + N_{proposals} \times FLOPs_{Heads}</span>
+                            <span class="calc-val" id="calc-fast-flops">- GigaFLOPs</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+</body>
+</html>
