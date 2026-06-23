@@ -75,18 +75,18 @@ $$L(p, t) = L_{\text{cls}}(p, u) + \lambda [u \ge 1] L_{\text{loc}}(t, v)$$
 
 ```bash
 2-Region-Proposals(Fast_R-CNN_Idea)/
-├── app.py                  # Flask Web Server & API endpoints
-├── detector.py             # Inference loop coordinator
-├── model.py                # Network structure & training loops (ROIPool, FastRCNN)
-├── run.sh                  # Checks dependencies & starts Flask on port 5003
-├── train_fast_rcnn.ipynb   # Self-contained Kaggle notebook for GPU training
-├── checkpoints/            # Target folder for Kaggle best_model.pth weights
-│   └── .gitkeep
+├── app.py                      # Flask Web Server & API endpoints
+├── fast_rcnn.py                # Inference pipeline (MSER and NMS operations)
+├── model.py                    # Network structure & local training loops (ROIPool, FastRCNN)
+├── run.sh                      # Checks dependencies & starts Flask on port 5004
+├── train_fast_rcnn_kaggle.ipynb # Self-contained Jupyter notebook for fast Kaggle GPU training
+├── checkpoints/                # Target folder for Kaggle-trained best_model.pth weights
+│   └── best_model.pth
 ├── templates/
-│   └── index.html          # Glassmorphism workspace UI
+│   └── index.html              # Glassmorphism workspace UI
 └── static/
-    ├── style.css           # Custom glassmorphic stylesheets
-    └── main.js             # Canvas drawing, AJAX triggers, & RoI inspector grids
+    ├── style.css               # Custom glassmorphic stylesheets
+    └── main.js                 # Canvas drawing, AJAX triggers, & RoI inspector grids
 ```
 
 ---
@@ -95,10 +95,11 @@ $$L(p, t) = L_{\text{cls}}(p, u) + \lambda [u \ge 1] L_{\text{loc}}(t, v)$$
 
 ### 1. Train the Detector Model on Kaggle
 To achieve high accuracy and learn coordinate offsets, it is recommended to train the model on a GPU.
-1. Upload [train_fast_rcnn.ipynb](train_fast_rcnn.ipynb) as a new notebook in Kaggle.
-2. Select **GPU T4** as the accelerator in Kaggle settings.
-3. Run all cells. The script will download MNIST, generate 1,800 synthetic multi-digit images on-the-fly, train for 8 epochs, and write `best_model.pth`.
-4. Download the generated `best_model.pth` file.
+1. Upload the self-contained [train_fast_rcnn_kaggle.ipynb](train_fast_rcnn_kaggle.ipynb) notebook to Kaggle.
+2. Select **GPU T4** (or another GPU) as the accelerator in your Kaggle Notebook Settings.
+3. Enable **Internet Access** in settings (required to download standard MNIST dataset files).
+4. Run all cells. The notebook will automatically download the dataset, generate synthetic multi-digit training images, perform Fast R-CNN training on GPU, evaluate, and save `best_model.pth` in `/kaggle/working/`.
+5. Download the generated `best_model.pth` file from Kaggle.
 
 ### 2. Add Weights locally
 Place the downloaded weight file in the checkpoints folder:

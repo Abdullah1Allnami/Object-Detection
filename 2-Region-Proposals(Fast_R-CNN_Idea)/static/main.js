@@ -690,9 +690,9 @@ document.addEventListener("DOMContentLoaded", () => {
         inspectorFullState.classList.remove("hidden");
         inspectorActiveBadge.classList.remove("hidden");
         
-        // 1. Coordinates Projection info (both Digit and ImageNet models now use the ResNet50 backbone with 1/32 stride)
-        const scale = 0.03125;
-        const scaleLabel = "1/32 (0.03125)";
+        // 1. Coordinates Projection info (Digit uses custom 1/8 scale, ImageNet uses ResNet50 1/32 scale)
+        const scale = activeModel === "digit" ? 0.125 : 0.03125;
+        const scaleLabel = activeModel === "digit" ? "1/8 (0.125)" : "1/32 (0.03125)";
         
         const [x, y, w, h] = step.box;
         roiImgCoords.textContent = `[x:${x}, y:${y}, w:${w}, h:${h}]`;

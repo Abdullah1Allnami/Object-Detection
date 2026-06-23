@@ -89,46 +89,44 @@ class ROIPool(nn.Module):
 
 class FastRCNN(nn.Module):
     """
-    Fast R-CNN Model Architecture using a ResNet50 backbone.
-    Downsamples the 256x256 image by a factor of 32 to an 8x8 feature map.
+    Fast R-CNN Model Architecture for MNIST digit detection.
+    Downsamples the 256x256 image by a factor of 8 to a 32x32 feature map.
     """
-    def __init__(self, num_classes=11, pool_size=(7, 7), spatial_scale=0.03125):
+    def __init__(self, num_classes=11, pool_size=(7, 7), spatial_scale=0.125):
         super(FastRCNN, self).__init__()
         
-        # Load pre-trained ResNet50 backbone
-        import torchvision.models as models
-        resnet = models.resnet50(weights=models.ResNet50_Weights.DEFAULT)
-        
-        # Modify the first conv layer to accept 1 channel (grayscale) instead of 3
-        resnet.conv1 = nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
-        
-        # Extract features (exclude average pooling and fully connected head)
-        # ResNet50 layer4 output size is (2048, H/32, W/32). For 256x256 image, output is (2048, 8, 8).
+        # Backbone CNN: Downsamples 256x256 image by a factor of 8 to 32x32
         self.backbone = nn.Sequential(
-            resnet.conv1,
-            resnet.bn1,
-            resnet.relu,
-            resnet.maxpool,
-            resnet.layer1,
-            resnet.layer2,
-            resnet.layer3,
-            resnet.layer4,
-            nn.Conv2d(2048, 128, kernel_size=1)  # 1x1 conv to reduce channels for lightweight RoI pooling
+            nn.Conv2d(1, 16, kernel_size=3, padding=1),
+            nn.BatchNorm2d(16),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=2, stride=2),  # 128x128
+            
+            nn.Conv2d(16, 32, kernel_size=3, padding=1),
+            nn.BatchNorm2d(32),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=2, stride=2),  # 64x64
+            
+            nn.Conv2d(32, 64, kernel_size=3, padding=1),
+            nn.BatchNorm2d(64),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=2, stride=2),  # 32x32
         )
         
         # RoI Pooling Layer
         self.roi_pool = ROIPool(output_size=pool_size, spatial_scale=spatial_scale)
         
-        # Sibling Heads
+        # Classifier Sibling Head
         self.classifier = nn.Sequential(
-            nn.Linear(128 * pool_size[0] * pool_size[1], 256),
+            nn.Linear(64 * pool_size[0] * pool_size[1], 256),
             nn.ReLU(inplace=True),
             nn.Dropout(p=0.5),
             nn.Linear(256, num_classes)
         )
         
+        # Bounding Box Regressor Sibling Head
         self.bbox_regressor = nn.Sequential(
-            nn.Linear(128 * pool_size[0] * pool_size[1], 256),
+            nn.Linear(64 * pool_size[0] * pool_size[1], 256),
             nn.ReLU(inplace=True),
             nn.Linear(256, 4)
         )
@@ -138,8 +136,8 @@ class FastRCNN(nn.Module):
         x: (B, 1, 256, 256) full images
         rois: (N, 5) rois [batch_idx, x1, y1, x2, y2]
         """
-        feat_map = self.backbone(x)  # (B, 128, 8, 8)
-        pooled_feats = self.roi_pool(feat_map, rois)  # (N, 128, 7, 7)
+        feat_map = self.backbone(x)  # (B, 64, 32, 32)
+        pooled_feats = self.roi_pool(feat_map, rois)  # (N, 64, 7, 7)
         pooled_feats_flat = pooled_feats.view(pooled_feats.size(0), -1)
         
         cls_logits = self.classifier(pooled_feats_flat)
@@ -174,7 +172,12 @@ class SyntheticMNISTDataset(torch.utils.data.Dataset):
             mnist_idx = np.random.randint(0, len(self.mnist))
             digit_img, digit_label = self.mnist[mnist_idx]
             
-            if not isinstance(digit_img, np.ndarray):
+            if torch.is_tensor(digit_img):
+                digit_img = digit_img.detach().cpu().numpy()
+            if isinstance(digit_img, np.ndarray):
+                if digit_img.ndim == 3 and digit_img.shape[0] == 1:
+                    digit_img = digit_img.squeeze(0)
+            else:
                 digit_img = np.array(digit_img, dtype=np.float32)
             
             x = np.random.randint(15, self.img_size - 43)
@@ -196,7 +199,12 @@ class SyntheticMNISTDataset(torch.utils.data.Dataset):
         if placed_digits == 0:
             mnist_idx = np.random.randint(0, len(self.mnist))
             digit_img, digit_label = self.mnist[mnist_idx]
-            if not isinstance(digit_img, np.ndarray):
+            if torch.is_tensor(digit_img):
+                digit_img = digit_img.detach().cpu().numpy()
+            if isinstance(digit_img, np.ndarray):
+                if digit_img.ndim == 3 and digit_img.shape[0] == 1:
+                    digit_img = digit_img.squeeze(0)
+            else:
                 digit_img = np.array(digit_img, dtype=np.float32)
             x, y = 114, 114
             box = [x, y, x + 28, y + 28]

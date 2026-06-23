@@ -27,11 +27,15 @@ def get_digit_model():
     global digit_model
     if digit_model is None:
         model_path = get_model_path()
+        print(f"[DEBUG] get_digit_model() - model_path resolves to: {model_path}")
         if os.path.exists(model_path):
+            print(f"[DEBUG] Loading digit model weights from: {model_path}")
             digit_model = FastRCNN(num_classes=11).to(device)
             digit_model.load_state_dict(torch.load(model_path, map_location=device))
             digit_model.eval()
+            print(f"[DEBUG] Digit model loaded successfully.")
         else:
+            print(f"[WARNING] Model weights file not found at: {model_path}")
             return None
     return digit_model
 
@@ -56,18 +60,28 @@ def index():
 
 @app.route("/api/train_status", methods=["GET"])
 def train_status():
+    model_path = get_model_path()
+    model_exists = os.path.exists(model_path)
+    
     if os.path.exists(STATUS_PATH):
         with open(STATUS_PATH, "r") as f:
             status = json.load(f)
         # If the status file claims completed but the weight file is missing, reset it
-        model_path = get_model_path()
-        if status["status"] == "completed" and not os.path.exists(model_path):
+        if status["status"] == "completed" and not model_exists:
             status["status"] = "idle"
             status["message"] = "Model weights missing. Please train the model."
     else:
         status = {"status": "idle", "progress": 0, "message": "Ready to train."}
         
-    status["model_available"] = os.path.exists(get_model_path())
+    # Regardless of training_status.json, if weights exist and we are not currently training,
+    # treat the status as completed/ready so the frontend enables and uses the model.
+    if model_exists and status.get("status") != "training":
+        status["status"] = "completed"
+        status["progress"] = 100
+        if status.get("message") in ["Ready to train.", "Ready to train custom Fast R-CNN detector."] or "missing" in status.get("message", "").lower():
+            status["message"] = "Model weights found. Ready to use."
+        
+    status["model_available"] = model_exists
     return jsonify(status)
 
 @app.route("/api/train", methods=["POST"])
@@ -146,4 +160,4 @@ def detect():
     })
 
 if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=5003, debug=True)
+    app.run(host="127.0.0.1", port=5004, debug=True)
