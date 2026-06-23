@@ -1,1 +1,0 @@
-{"status": "completed", "progress": 100, "message": "Model trained successfully!", "loss": 3.0452, "accuracy": 77.01, "f1": 0.187, "test_accuracy": 79.8, "test_f1": 0.1769}
