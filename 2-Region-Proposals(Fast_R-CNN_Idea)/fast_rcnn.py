@@ -251,7 +251,7 @@ def run_fast_rcnn_mnist(model, cv_image, min_conf, device):
         refined_box_orig = [rx_orig, ry_orig, rw_orig, rh_orig]
         
         class_name = str(class_idx) if class_idx < 10 else "Background"
-        is_detection = (class_idx < 10) and (score >= min_conf)
+        is_detection = bool((class_idx < 10) and (score >= min_conf))
         
         # Get 7x7 grid values
         grid_7x7 = avg_pooled_feats[i].tolist()
@@ -400,7 +400,7 @@ def run_fast_rcnn_resnet50(model, categories, cv_image, min_conf, device):
         score = float(cls_probs[class_idx])
         
         class_name = categories[class_idx]
-        is_detection = score >= min_conf
+        is_detection = bool(score >= min_conf)
         
         # Pre-trained has no regression weights, return [0,0,0,0] offsets
         offsets = [0.0, 0.0, 0.0, 0.0]
