@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fast R-CNN Object Detector - Learning Center</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom Style -->
+    <link rel="stylesheet" href="/static/style.css">
+    <!-- Custom Script -->
+    <script src="/static/main.js" defer></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="logo">
+                <i class="fa-solid fa-bolt glow-icon"></i>
+                <h1>Fast R-CNN Detector</h1>
+                <span class="badge">Roadmap Step 2</span>
+            </div>
+            <p class="subtitle">Experience Fast R-CNN's speedup: Shared Feature Map, Region of Interest (RoI) Pooling, and Bounding Box Regression.</p>
+        </header>
+
+        <!-- Main Workspace -->
+        <div class="workspace-grid">
+            
+            <!-- COLUMN 1: Canvas & Controls -->
+            <section class="panel glass controls-panel">
+                <div class="panel-header">
+                    <i class="fa-solid fa-pen-ruler"></i>
+                    <h2>Interactive Drawing</h2>
+                </div>
+                
+                <!-- Canvas Workspace -->
+                <div class="canvas-wrapper">
+                    <div class="canvas-container">
+                        <canvas id="drawing-canvas" width="256" height="256"></canvas>
+                    </div>
+                    <div class="canvas-controls">
+                        <button id="btn-clear-canvas" class="btn btn-outline">
+                            <i class="fa-solid fa-eraser"></i> Clear
+                        </button>
+                        <span class="help-text">Draw digits (0-9) clearly in white (or black). Draw multiple separate digits!</span>
+                    </div>
+                </div>
+
+                <div class="panel-header" style="margin-top: 20px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 15px;">
+                    <i class="fa-solid fa-sliders"></i>
+                    <h2>Fast R-CNN Parameters</h2>
+                </div>
+
+                <!-- Hyperparameters Sliders -->
+                <div class="control-group">
+                    <!-- Confidence Threshold -->
+                    <div class="slider-container">
+                        <div class="slider-header">
+                            <span>Confidence Threshold</span>
+                            <span class="value-display" id="val-min-conf">0.70</span>
+                        </div>
+                        <input type="range" id="slider-min-conf" min="0.10" max="0.95" step="0.05" value="0.70">
+                        <p class="help-text">Minimum class score required to predict a digit.</p>
+                    </div>
+
+                    <!-- IoU Threshold -->
+                    <div class="slider-container">
+                        <div class="slider-header">
+                            <span>NMS IoU Threshold</span>
+                            <span class="value-display" id="val-iou-thresh">0.30</span>
+                        </div>
+                        <input type="range" id="slider-iou-thresh" min="0.05" max="0.80" step="0.05" value="0.30">
+                        <p class="help-text">Max overlap allowed between detected bounding boxes.</p>
+                    </div>
+                </div>
+
+                <!-- Action Triggers -->
+                <div class="action-buttons">
+                    <button id="btn-detect" class="btn btn-primary">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> Run Fast R-CNN Detection
+                    </button>
+                </div>
+            </section>
+
+            <!-- COLUMN 2: Visualization Board -->
+            <section class="panel glass visualization-panel">
+                <div class="panel-header">
+                    <i class="fa-solid fa-eye"></i>
+                    <h2>Fast R-CNN Pipeline Board</h2>
+                    <div class="pipeline-tabs">
+                        <button class="tab-btn active" data-step="proposals">
+                            <span class="step-num">1</span> Proposals
+                        </button>
+                        <button class="tab-btn" data-step="regression">
+                            <span class="step-num">2</span> Regression
+                        </button>
+                        <button class="tab-btn" data-step="detections">
+                            <span class="step-num">3</span> Detections
+                        </button>
+                    </div>
+                </div>
+
+                <div class="visualization-container">
+                    <div class="render-box">
+                        <!-- Source canvas content is mirrored here -->
+                        <canvas id="viz-canvas" width="256" height="256"></canvas>
+                        <!-- Interactive SVGs and guides -->
+                        <div id="detection-overlay" class="overlay-container"></div>
+                    </div>
+                </div>
+
+                <!-- Step Description Panel -->
+                <div id="step-description-box" class="description-box glass-inset">
+                    <h3 id="step-title">Step 1: Region Proposal Generator</h3>
+                    <p id="step-desc">A contour-based generator inspects the input image to find candidate region proposals (RoIs) likely containing digits. Fast R-CNN evaluates all of these in a single batch forward pass, avoiding separate crops.</p>
+                </div>
+            </section>
+
+            <!-- COLUMN 3: Performance Dashboard -->
+            <section class="panel glass stats-panel">
+                <div class="panel-header">
+                    <i class="fa-solid fa-gauge-high"></i>
+                    <h2>Performance & Speedup</h2>
+                </div>
+
+                <!-- Metric Cards -->
+                <div class="metrics-grid">
+                    <div class="metric-card card-cyan">
+                        <div class="metric-val" id="stat-proposals">-</div>
+                        <div class="metric-lbl">Region Proposals (RoIs)</div>
+                    </div>
+                    <div class="metric-card card-green">
+                        <div class="metric-val" id="stat-latency">-</div>
+                        <div class="metric-lbl">Fast R-CNN Latency (1 Forward)</div>
+                    </div>
+                    <div class="metric-card card-purple">
+                        <div class="metric-val" id="stat-rcnn-latency">-</div>
+                        <div class="metric-lbl">Est. Crop-based R-CNN (N Forwards)</div>
+                    </div>
+                    <div class="metric-card card-gold">
+                        <div class="metric-val" id="stat-speedup">-</div>
+                        <div class="metric-lbl">Speedup Factor</div>
+                    </div>
+                </div>
+
+                <!-- Live Detections List -->
+                <div class="detections-list-container">
+                    <h3>Final Detected Objects</h3>
+                    <div id="detections-list" class="detections-list">
+                        <div class="empty-list-msg">No objects detected. Draw digits and click detect.</div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- Concept Explainer -->
+        <section class="panel glass explainer-panel">
+            <div class="panel-header">
+                <i class="fa-solid fa-graduation-cap"></i>
+                <h2>How does Fast R-CNN improve over R-CNN?</h2>
+            </div>
+            <div class="explainer-content">
+                <div class="explainer-item">
+                    <h3><i class="fa-solid fa-layer-group"></i> 1. Shared Feature Map</h3>
+                    <p>In R-CNN, each crop is fed through the CNN backbone individually (e.g. 100 crops = 100 forwards). Fast R-CNN passes the **entire image** through the backbone once, generating a shared feature map. This removes the main computational bottleneck.</p>
+                </div>
+                <div class="explainer-item">
+                    <h3><i class="fa-solid fa-compress"></i> 2. RoI Pooling Layer</h3>
+                    <p>The RoI Pooling layer maps arbitrary-sized region proposal coordinates onto the shared feature map, extracting a fixed $7 \times 7$ feature vector for each proposal. This allows fully connected classification and regression heads to run instantly in parallel.</p>
+                </div>
+                <div class="explainer-item">
+                    <h3><i class="fa-solid fa-maximize"></i> 3. Bounding Box Regression</h3>
+                    <p>Along with a class probability, the model predicts bounding box coordinates offsets. Instead of relying on raw proposal coordinates, Fast R-CNN **regresses** (scales and shifts) the initial proposals to tightly fit the borders of the digits.</p>
+                </div>
+            </div>
+        </section>
+    </div>
+</body>
+</html>
